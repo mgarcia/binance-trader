@@ -23,6 +23,10 @@ class Trading():
     # Buy/Sell qty
     quantity = 0
 
+    # Max_buyprice = 0
+    max_buyprice = 0
+    maxBuyPrice = 0
+
     # float(step_size * math.floor(float(free)/step_size))
     step_size = 0
     tick_size = 0
@@ -49,6 +53,7 @@ class Trading():
         self.wait_time = self.option.wait_time
         self.stop_loss = self.option.stop_loss
         self.max_amount = self.option.max_amount
+        self.max_buyprice = self.option.max_buyprice
 
         #BTC amount
         self.amount = self.option.amount
@@ -341,9 +346,14 @@ class Trading():
         if ask price is greater than profit price,
         buy with my buy price,
         '''
+        maxBuyPrice = 0
 
-        if (lastAsk >= profitableSellingPrice and self.option.mode == 'profit') or \
-           (lastPrice <= float(self.option.buyprice) and self.option.mode == 'range'):
+        if self.max_buyprice:
+          maxBuyPrice = self.max_buyprice
+
+        if (( maxBuyPrice == 0 or buyPrice <= maxBuyPrice) and \
+            (lastAsk >= profitableSellingPrice and self.option.mode == 'profit') or \
+            ( lastPrice <= float(self.option.buyprice) and self.option.mode == 'range')):
 
             if self.order_id == 0:
 
