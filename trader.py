@@ -32,6 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', type=bool, help='Debug True/False', default=True)
     parser.add_argument('--loop', type=int, help='Loop (0 unlimited)', default=0)
     parser.add_argument('--max_buyprice', type=float, help='Max buy price you are welling to pay', default=0)
+    parser.add_argument('--spread_threshold', type=float, help='Spread threashold to trigger a purchase', default=1)
 
     # Working Modes
     #  - profit: Profit Hunter. Find defined profit, buy and sell. (Ex: 1.3% profit)

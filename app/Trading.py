@@ -10,6 +10,7 @@ import config
 # Define Custom imports
 from Database import Database
 from Orders import Orders
+from Stats import Stats
 from Tools import Tools
 
 class Trading():
@@ -26,6 +27,9 @@ class Trading():
     # Max_buyprice = 0
     max_buyprice = 0
     maxBuyPrice = 0
+
+    # Spread buy trigger
+    spread_threshold = 1
 
     # float(step_size * math.floor(float(free)/step_size))
     step_size = 0
@@ -54,6 +58,7 @@ class Trading():
         self.stop_loss = self.option.stop_loss
         self.max_amount = self.option.max_amount
         self.max_buyprice = self.option.max_buyprice
+        self.spread_threshold = self.option.spread_threshold
 
         #BTC amount
         self.amount = self.option.amount
@@ -65,28 +70,35 @@ class Trading():
         # Do you have an open order?
         self.checkorder()
 
+        orderId = None
+
         try:
 
             # Create order
             orderId = Orders.buy_limit(symbol, quantity, buyPrice)
-
-            # Database log
-            Database.write([orderId, symbol, 0, buyPrice, 'BUY', quantity, self.option.profit])
-
-            print ('Buy order created id:%d, q:%.8f, p:%.8f' % (orderId, quantity, float(buyPrice)))
-
-            self.order_id = orderId
-
-            self.bot_status = "buy"
-
-            return orderId
-
         except Exception as e:
-            print ('bl: %s' % (e))
-            time.sleep(self.WAIT_TIME_BUY_SELL)
+            print ('buy exception: %s' % (e))
+            time.sleep(self.WAIT_TIME_BUY_SELL * 10)
             self.bot_status = "cancel"
             return None
 
+
+        # Database log
+        try:
+            Database.write([orderId, symbol, 0, buyPrice, 'BUY', quantity, self.option.profit])
+        except Exception as e:
+            print ('DB LOG ERROR: Buy order created id:%d, q:%.8f, p:%.8f, e:%s' % (orderId, quantity, float(buyPrice),e))
+
+
+        print ('Buy order created id:%d, q:%.8f, p:%.8f' % (orderId, quantity, float(buyPrice)))
+
+        self.order_id = orderId
+
+        self.bot_status = "buy"
+
+        return orderId
+
+        
     def sell(self, symbol, quantity, orderId, sell_price, last_price):
 
         '''
@@ -108,15 +120,15 @@ class Trading():
             buy_order = Orders.get_order(symbol, orderId)
 
             if buy_order['status'] == 'FILLED' and buy_order['side'] == "BUY":
-                print ("Buy order filled after 0.5 second... Try sell...")
+                print ("%s Buy order filled after 0.5 second... Try sell...", symbol)
 
             elif buy_order['status'] == 'PARTIALLY_FILLED' and buy_order['side'] == "BUY":
-                print ("Buy order partially filled... Wait 1 more second...")
+                print ("%s Buy order partially filled... Wait 1 more second...", symbol)
                 quantity = self.check_partial_order(symbol, orderId, sell_price)
 
             else:
                 self.cancel(symbol, orderId)
-                print ("Buy order fail (Not filled) Cancel order...")
+                print ("%s Buy order fail (Not filled) Cancel order...", symbol)
 
                 time.sleep(self.WAIT_TIME_BUY_SELL)
                 buy_order = Orders.get_order(symbol, orderId)
@@ -136,16 +148,16 @@ class Trading():
 
         sell_id = Orders.sell_limit(symbol, quantity, sell_price)['orderId']
 
-        print ('Sell order create id: %d' % sell_id)
+        print ('%s Sell order create id: %d' % (symbol, sell_id))
 
         # 5 seconds wait time before checking sell order
         time.sleep(self.WAIT_TIME_CHECK_SELL)
 
         if Orders.get_order(symbol, sell_id)['status'] == 'FILLED':
 
-            print ('Sell order (Filled) id: %d' % sell_id)
-            print ('LastPrice : %.8f' % last_price)
-            print ('Profit: %%%s. Buy price: %.8f Sell price: %.8f' % (self.option.profit, float(buy_order['price']), sell_price))
+            print ('%s Sell order (Filled) id: %d' % (symbol, sell_id))
+            print ('%s LastPrice : %.8f' % (symbol, last_price))
+            print ('%s Profit: %%%s. Buy price: %.8f Sell price: %.8f' % (symbol, self.option.profit, float(buy_order['price']), sell_price))
 
             self.order_id = 0
             self.bot_status = "sell"
@@ -170,9 +182,9 @@ class Trading():
                 time.sleep(self.WAIT_TIME_CHECK_HOLD)
                 sell_status = Orders.get_order(symbol, sell_id)['status']
                 lastPrice = float(Orders.get_ticker(symbol)['lastPrice'])
-                print ('Status: %s Current price: %s Sell price: %s' % (sell_status, lastPrice, sell_price))
+                print ('%s Status: %s Current price: %s Sell price: %s' % (symbol, sell_status, lastPrice, sell_price))
 
-            print ('Sold! Continue trading...')
+            print ('%s Sold! Continue trading...', symbol)
 
         self.order_id = 0
         self.bot_status = "sell"
@@ -233,13 +245,13 @@ class Trading():
 
         elif status == 'PARTIALLY_FILLED':
             self.order_id = 0
-            print ('Sell partially filled, hold sell position to prevent dust coin. Continue trading...')
+            print ('%s Sell partially filled, hold sell position to prevent dust coin. Continue trading...', symbol)
             time.sleep(self.WAIT_TIME_CHECK_SELL)
             return True
 
         elif status == 'FILLED':
             self.order_id = 0
-            print('Order filled before sell at loss!')
+            print('%s Order filled before sell at loss!', symbol)
             return True
         else:
             return False
@@ -307,6 +319,7 @@ class Trading():
         lastPrice = float(ticker['lastPrice'])
         lastBid = float(ticker['bidPrice'])
         lastAsk = float(ticker['askPrice'])
+        weightedAvgPrice = float(ticker['weightedAvgPrice'])
 
         # Target buy price, add little increase #87
         buyPrice = lastBid + (lastBid * self.increasing / 100)
@@ -316,10 +329,15 @@ class Trading():
 
         # Spread ( profit )
         profitableSellingPrice = self.calc(lastBid)
+        spread = (lastAsk - lastBid) / lastBid  * 100# > 0.01 # spread > 1%
+
+        # Weight Price
 
         # Format Buy /Sell price according to Binance restriction
         buyPrice = round(buyPrice, self.tick_size)
         sellPrice = round(sellPrice, self.tick_size)
+
+        wanted_price = weightedAvgPrice * (1 - self.option.profit/2/100)
 
         # Order amount
         if self.quantity > 0:
@@ -339,7 +357,8 @@ class Trading():
 
         # Screen log
         if self.option.prints and self.order_id == 0:
-            print ('price:%.8f buyp:%.8f sellp:%.8f-bid:%.8f ask:%.8f' % (lastPrice, buyPrice, profitableSellingPrice, lastBid, lastAsk))
+            #print ('s:%s w:%.8f price:%.8f buyp:%.8f sellp:%.8f-bid:%.8f ask:%.8f spread:%.2f w:%0.8f' % (symbol, wanted_price, lastPrice, buyPrice, profitableSellingPrice, lastBid, lastAsk, spread, weightedAvgPrice))
+            print ('%s wanted:%.8f price:%.8f sell:%.08f weighted:%0.8f' % (symbol, wanted_price, buyPrice, profitableSellingPrice, weightedAvgPrice))
 
         '''
         Did profit get caught
@@ -351,8 +370,14 @@ class Trading():
         if self.max_buyprice:
           maxBuyPrice = self.max_buyprice
 
+        if self.spread_threshold:
+          spread_threshold = self.spread_threshold
+
+            #(lastAsk >= profitableSellingPrice and self.option.mode == 'profit') or \
+            #(spread >= spread_threshold and self.option.mode == 'profit') or \
+            #(weightedAvgPrice > buyPrice and self.option.mode == 'profit') or \
         if (( maxBuyPrice == 0 or buyPrice <= maxBuyPrice) and \
-            (lastAsk >= profitableSellingPrice and self.option.mode == 'profit') or \
+            (buyPrice < (weightedAvgPrice * (1 - self.option.profit/2/100)) and self.option.mode == 'profit') or \
             ( lastPrice <= float(self.option.buyprice) and self.option.mode == 'range')):
 
             if self.order_id == 0:
@@ -493,7 +518,7 @@ class Trading():
            print ('Wait buyprice:%.8f sellprice:%.8f' % (self.option.buyprice, self.option.sellprice))
 
         else:
-           print ('%s%% profit scanning for %s\n' % (self.option.profit, symbol))
+           print ('%s%% profit scanning for %s, spread_threshold=%.2f\n' % (self.option.profit, symbol, self.spread_threshold))
 
         print ('... \n')
 
