@@ -3,6 +3,7 @@
 
 /app/config.py
 /db/orders.db
+config_coins.py
 
 **/env
 *.pyc

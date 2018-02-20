@@ -43,7 +43,7 @@ class Trading():
     WAIT_TIME_BUY_SELL = 1 # seconds
     WAIT_TIME_CHECK_BUY = 0.5 # seconds
     WAIT_TIME_CHECK_SELL = 5 # seconds
-    WAIT_TIME_CHECK_HOLD = 10 # seconds
+    WAIT_TIME_CHECK_HOLD = 100 # seconds
     WAIT_TIME_STOP_LOSS = 20 # seconds
 
     def __init__(self, option):
@@ -78,7 +78,7 @@ class Trading():
             orderId = Orders.buy_limit(symbol, quantity, buyPrice)
         except Exception as e:
             print ('buy exception: %s' % (e))
-            time.sleep(self.WAIT_TIME_BUY_SELL * 10)
+            time.sleep(self.WAIT_TIME_BUY_SELL * 100)
             self.bot_status = "cancel"
             return None
 

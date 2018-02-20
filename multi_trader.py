@@ -26,7 +26,8 @@ def run_trade(option):
   t.run()
 
 if __name__ == '__main__':
-    pool = Pool()
+    pool_size = len(COINS)
+    pool = Pool(pool_size)
     args = [Struct(**COINS[pair]) for pair in COINS]
     pool.map(run_trade, args)
 
