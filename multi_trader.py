@@ -9,7 +9,7 @@ from config_coins import COINS
 
 sys.path.insert(0, './app')
 
-from app.Trading import Trading
+from Trading import Trading
 class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)      
