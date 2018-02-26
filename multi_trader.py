@@ -7,9 +7,9 @@ import random
 import time
 from config_coins import COINS
 
-sys.path.insert(0, './app')
+#sys.path.insert(0, './app')
 
-from Trading import Trading
+from app.Trading import Trading
 class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)      

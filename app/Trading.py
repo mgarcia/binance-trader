@@ -326,9 +326,11 @@ class Trading():
 
         # Target sell price, decrease little 
         sellPrice = lastAsk - (lastAsk * self.decreasing / 100)
+        #sellPrice = buyPrice * (1 + self.option.profit)
 
         # Spread ( profit )
-        profitableSellingPrice = self.calc(lastBid)
+        #profitableSellingPrice = self.calc(lastBid)
+        profitableSellingPrice = buyPrice * (1 + self.option.profit / 100)
         spread = (lastAsk - lastBid) / lastBid  * 100# > 0.01 # spread > 1%
 
         # Weight Price
@@ -397,7 +399,8 @@ class Trading():
                 profitableSellingPrice = self.option.sellprice
 
             # Sell price with proper sat count
-            profitableSellingPrice = round((profitableSellingPrice - (profitableSellingPrice * self.option.decreasing / 100)), self.tick_size)
+            #profitableSellingPrice = round((profitableSellingPrice - (profitableSellingPrice * self.option.decreasing / 100)), self.tick_size)
+            profitableSellingPrice = round(profitableSellingPrice, self.tick_size)
 
             '''
             If the order is complete,
