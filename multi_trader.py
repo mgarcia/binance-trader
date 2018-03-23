@@ -9,6 +9,7 @@ from config_coins import COINS
 
 sys.path.insert(0, './app')
 
+from Orders import Orders
 from Trading import Trading
 class Struct:
     def __init__(self, **entries):
@@ -22,7 +23,7 @@ def multi_run_wrapper(args):
 def run_trade(option):
   timeDelay = random.randrange(0, 5)
   time.sleep(timeDelay)
-  t = Trading(option)
+  t = Trading(option, Orders)
   t.run()
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ import config
 
 # Define Custom imports
 from Database import Database
-from Orders import Orders
+#from Orders import Orders
 from Stats import Stats
 from Tools import Tools
 
@@ -46,10 +46,10 @@ class Trading():
     WAIT_TIME_CHECK_HOLD = 100 # seconds
     WAIT_TIME_STOP_LOSS = 20 # seconds
 
-    def __init__(self, option):
+    def __init__(self, option, orders):
 
 
-        self.OrdersPartner = Orders
+        self.OrdersPartner = orders
 
         # Get argument parse options
         self.option = option
@@ -340,9 +340,10 @@ class Trading():
 
         # Format Buy /Sell price according to Binance restriction
         buyPrice = round(buyPrice, self.tick_size)
+        #print ">>>>", buyPrice, self.tick_size
         sellPrice = round(sellPrice, self.tick_size)
 
-        wanted_price = weightedAvgPrice * (1 - self.option.profit/2/100)
+        wanted_price = weightedAvgPrice * (1 - 2.4*self.option.profit/100)
 
         # Order amount
         if self.quantity > 0:
@@ -351,6 +352,7 @@ class Trading():
             if self.max_amount:
                 self.amount = float(self.OrdersPartner.get_balance("BTC"))
 
+            #print ">>>>", self.amount,  buyPrice
             quantity = self.format_quantity(self.amount / buyPrice)
 
         # Check working mode
@@ -382,7 +384,7 @@ class Trading():
             #(spread >= spread_threshold and self.option.mode == 'profit') or \
             #(weightedAvgPrice > buyPrice and self.option.mode == 'profit') or \
         if (( maxBuyPrice == 0 or buyPrice <= maxBuyPrice) and \
-            (buyPrice < (weightedAvgPrice * (1 - self.option.profit/2/100)) and self.option.mode == 'profit') or \
+            (buyPrice < wanted_price and self.option.mode == 'profit') or \
             ( lastPrice <= float(self.option.buyprice) and self.option.mode == 'range')):
 
             if self.order_id == 0:
@@ -431,7 +433,9 @@ class Trading():
             print ("Invalid symbol, please try again...")
             exit(1)
 
+        print ("%s symbol_info %s" % (symbol, symbol_info))
         symbol_info['filters'] = {item['filterType']: item for item in symbol_info['filters']}
+        print ("%s symbol_info_after %s", (symbol, symbol_info))
 
         return symbol_info
 

@@ -148,3 +148,14 @@ class Orders():
 
         except Exception as e:
             print ('gb: %s' % (e))
+
+    @staticmethod
+    def get_pairs(symbol="ETH"):
+        try:
+            info = client.get_exchance_info()
+            pairs = {item['symbol']: item for item in info['symbols']}
+
+            return pairs
+
+        except Exception as e:
+            print ('gb: %s' % (e))
