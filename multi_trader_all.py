@@ -22,8 +22,7 @@ def multi_run_wrapper(args):
     return run_trade(*args)
 
 def run_trade(option):
-  timeDelay = random.randrange(0, 5)
-  time.sleep(timeDelay)
+  time.sleep(30)
   t = Trading(option, Orders)
   t.run()
 
@@ -38,7 +37,7 @@ if __name__ == '__main__':
         "increasing": 0.2,
         "decreasing": 0.2,
         "orderid": 0,
-        "wait_time": 20,
+        "wait_time": 60,
         "test_mode": False,
         "prints": True,
         "debug": True,

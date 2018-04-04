@@ -6,6 +6,7 @@ import os
 import sys
 import time
 import config
+import random
 
 # Define Custom imports
 from Database import Database
@@ -40,9 +41,9 @@ class Trading():
     bot_status = "scan"
 
     # Define static vars
-    WAIT_TIME_BUY_SELL = 1 # seconds
-    WAIT_TIME_CHECK_BUY = 0.5 # seconds
-    WAIT_TIME_CHECK_SELL = 5 # seconds
+    WAIT_TIME_BUY_SELL = 2 # seconds
+    WAIT_TIME_CHECK_BUY = 1 # seconds
+    WAIT_TIME_CHECK_SELL = 10 # seconds
     WAIT_TIME_CHECK_HOLD = 100 # seconds
     WAIT_TIME_STOP_LOSS = 20 # seconds
 
@@ -433,9 +434,9 @@ class Trading():
             print ("Invalid symbol, please try again...")
             exit(1)
 
-        print ("%s symbol_info %s" % (symbol, symbol_info))
+        #print ("%s symbol_info %s" % (symbol, symbol_info))
         symbol_info['filters'] = {item['filterType']: item for item in symbol_info['filters']}
-        print ("%s symbol_info_after %s", (symbol, symbol_info))
+        #print ("%s symbol_info_after %s", (symbol, symbol_info))
 
         return symbol_info
 
@@ -534,6 +535,7 @@ class Trading():
 
         while (cycle <= self.option.loop):
 
+            time.sleep(random.randrange(0, self.wait_time))
             startTime = time.time()
 
             self.action(symbol)
@@ -542,7 +544,7 @@ class Trading():
 
             if endTime - startTime < self.wait_time:
 
-               time.sleep(self.wait_time - (endTime - startTime))
+               time.sleep(self.wait_time)
 
                # 0 = Unlimited loop
                if self.option.loop > 0:
